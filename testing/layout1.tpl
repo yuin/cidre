@@ -1,0 +1,3 @@
+HEADER
+{{ yield }}
+FOOTER
