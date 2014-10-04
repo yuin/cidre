@@ -55,7 +55,7 @@ root := app.MountPoint("/")
 root.Use(func(w http.ResponseWriter, r *http.Request){
   // do something
 
-  cidre.RequestContext(r).MiddlewareChain.doNext(w,r)
+  cidre.RequestContext(r).MiddlewareChain.DoNext(w,r)
 
   // do something
 })
@@ -131,7 +131,7 @@ root.Use(func(w http.ResponseWriter, r *http.Request){
       // do some stuff
    })
 
-  cidre.RequestContext(r).MiddlewareChain.doNext(w,r)
+  cidre.RequestContext(r).MiddlewareChain.DoNext(w,r)
 
 })
 ~~~

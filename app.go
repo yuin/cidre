@@ -198,7 +198,7 @@ func (self *MiddlewareChain) Copy() *MiddlewareChain {
 
 // Causes the next middleware in the chain to be invoked, or if the calling middleware is
 // the last middleware in the chain, causes the handler at the end of the chain to be invoked.
-func (self *MiddlewareChain) doNext(w http.ResponseWriter, r *http.Request) {
+func (self *MiddlewareChain) DoNext(w http.ResponseWriter, r *http.Request) {
 	self.sp += 1
 	self.middlewares[self.sp].ServeHTTP(w, r)
 }
@@ -276,7 +276,7 @@ func NewRoute(n, p, m string, s bool, handler http.Handler, middlewares ...Middl
 func (self *Route) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	ctx := RequestContext(r)
 	ctx.MiddlewareChain = self.MiddlewareChain.Copy()
-	ctx.MiddlewareChain.doNext(w, r)
+	ctx.MiddlewareChain.DoNext(w, r)
 }
 
 /* }}} */

@@ -79,7 +79,7 @@ func NewSessionMiddleware(app *App, config *SessionConfig, storeConfig interface
 func (self *SessionMiddleware) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	ctx := RequestContext(r)
 	if !ctx.IsDynamicRoute() {
-		ctx.MiddlewareChain.doNext(w, r)
+		ctx.MiddlewareChain.DoNext(w, r)
 	} else {
 		if !strings.HasPrefix(r.URL.Path, self.Config.CookiePath) {
 			return
@@ -133,7 +133,7 @@ func (self *SessionMiddleware) ServeHTTP(w http.ResponseWriter, r *http.Request)
 			http.SetCookie(w, cookie)
 		})
 
-		ctx.MiddlewareChain.doNext(w, r)
+		ctx.MiddlewareChain.DoNext(w, r)
 	}
 
 }

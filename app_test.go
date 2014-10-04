@@ -96,22 +96,22 @@ func TestAppBuildUrl(t *testing.T) {
 func TestAppMiddleware(t *testing.T) {
 	testMd1 := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte("md1-1"))
-		RequestContext(r).MiddlewareChain.doNext(w,r)
+		RequestContext(r).MiddlewareChain.DoNext(w,r)
 		w.Write([]byte("md1-2"))
 	})
 	testMd2 := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte("md2-1"))
-		RequestContext(r).MiddlewareChain.doNext(w,r)
+		RequestContext(r).MiddlewareChain.DoNext(w,r)
 		w.Write([]byte("md2-2"))
 	})
 	testMd3 := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte("md3-1"))
-		RequestContext(r).MiddlewareChain.doNext(w,r)
+		RequestContext(r).MiddlewareChain.DoNext(w,r)
 		w.Write([]byte("md3-2"))
 	})
     testMd4 := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte("md4-1"))
-		RequestContext(r).MiddlewareChain.doNext(w,r)
+		RequestContext(r).MiddlewareChain.DoNext(w,r)
 		w.Write([]byte("md4-2"))
 	})
 	app := NewApp(DefaultAppConfig())
