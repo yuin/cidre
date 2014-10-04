@@ -203,6 +203,23 @@ func (self *MiddlewareChain) DoNext(w http.ResponseWriter, r *http.Request) {
 	self.middlewares[self.sp].ServeHTTP(w, r)
 }
 
+func MiddlewareOf(arg interface{}) Middleware {
+  switch arg.(type) {
+  case http.Handler:
+    return arg.(Middleware)
+  default:
+    return Middleware(http.HandlerFunc(arg.(func(http.ResponseWriter, *http.Request))))
+  }
+}
+
+func MiddlewaresOf(args ...interface{}) []Middleware {
+  result := make([]Middleware, 0, len(args))
+  for _, arg := range args {
+    result = append(result, MiddlewareOf(arg))
+  }
+  return result
+}
+
 /* }}} */
 
 /* Logger {{{ */
@@ -252,7 +269,7 @@ type Route struct {
 	MiddlewareChain *MiddlewareChain
 }
 
-var NopMiddleware = Middleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {}))
+var NopMiddleware = Middleware(MiddlewareOf(func(w http.ResponseWriter, r *http.Request) {}))
 
 func NewRoute(n, p, m string, s bool, handler http.Handler, middlewares ...Middleware) *Route {
 	self := &Route{
@@ -292,41 +309,41 @@ type MountPoint struct {
 }
 
 // Adds a middleware to the end of the middleware chain.
-func (self *MountPoint) Use(middlewares ...Middleware) {
-	self.Middlewares = append(self.Middlewares, middlewares...)
+func (self *MountPoint) Use(middlewares ...interface{}) {
+	self.Middlewares = append(self.Middlewares, MiddlewaresOf(middlewares...)...)
 }
 
  // Registers a http.HandlerFunc and middlewares with the given path pattern and method. 
-func (self *MountPoint) Route(n, p, m string, s bool, h http.HandlerFunc, middlewares ...Middleware) {
+func (self *MountPoint) Route(n, p, m string, s bool, h http.HandlerFunc, middlewares ...interface{}) {
 	mds := make([]Middleware, 0, 10)
 	mds = append(mds, self.Middlewares...)
-	mds = append(mds, middlewares...)
+	mds = append(mds, MiddlewaresOf(middlewares...)...)
 	route := NewRoute(n, self.Path+p, m, s, http.HandlerFunc(h), mds...)
 	self.App.Routes[n] = route
 }
 
 // Shortcut for Route(name, pattern, "GET", false, handler, ...Middleware)
-func (self *MountPoint) Get(n, p string, h http.HandlerFunc, middlewares ...Middleware) {
+func (self *MountPoint) Get(n, p string, h http.HandlerFunc, middlewares ...interface{}) {
 	self.Route(n, p, "GET", false, h, middlewares...)
 }
 
 // Shortcut for Route(name, pattern, "POST", false, handler, ...Middleware)
-func (self *MountPoint) Post(n, p string, h http.HandlerFunc, middlewares ...Middleware) {
+func (self *MountPoint) Post(n, p string, h http.HandlerFunc, middlewares ...interface{}) {
 	self.Route(n, p, "POST", false, h, middlewares...)
 }
 
 // Shortcut for Route(name, pattern, "Put", false, handler, ...Middleware)
-func (self *MountPoint) Put(n, p string, h http.HandlerFunc, middlewares ...Middleware) {
+func (self *MountPoint) Put(n, p string, h http.HandlerFunc, middlewares ...interface{}) {
 	self.Route(n, p, "PUT", false, h, middlewares...)
 }
 
 // Shortcut for Route(name, pattern, "DELETE", false, handler, ...Middleware)
-func (self *MountPoint) Delete(n, p string, h http.HandlerFunc, middlewares ...Middleware) {
+func (self *MountPoint) Delete(n, p string, h http.HandlerFunc, middlewares ...interface{}) {
 	self.Route(n, p, "DELETE", false, h, middlewares...)
 }
 
 // Registers a handler that serves static files.
-func (self *MountPoint) Static(n, p, local string, middlewares ...Middleware) {
+func (self *MountPoint) Static(n, p, local string, middlewares ...interface{}) {
 	path := strings.Trim(p, "/")
 	self.Route(n, path+"/(?P<path>.*)", "GET", true,
 		func(w http.ResponseWriter, r *http.Request) {
@@ -458,8 +475,8 @@ func (self *App) BuildUrl(n string, args ...string) string {
 }
 
 // Adds a middleware to the end of the middleware chain.
-func (self *App) Use(middlewares ...Middleware) {
-	self.Middlewares = append(self.Middlewares, middlewares...)
+func (self *App) Use(middlewares ...interface{}) {
+	self.Middlewares = append(self.Middlewares, MiddlewaresOf(middlewares...)...)
 }
 
 // Returns a new MountPoint object associated the given path.

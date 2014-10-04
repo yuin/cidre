@@ -104,11 +104,11 @@ func TestAppMiddleware(t *testing.T) {
 		RequestContext(r).MiddlewareChain.DoNext(w,r)
 		w.Write([]byte("md2-2"))
 	})
-	testMd3 := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	testMd3 := func(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte("md3-1"))
 		RequestContext(r).MiddlewareChain.DoNext(w,r)
 		w.Write([]byte("md3-2"))
-	})
+	}
     testMd4 := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte("md4-1"))
 		RequestContext(r).MiddlewareChain.DoNext(w,r)

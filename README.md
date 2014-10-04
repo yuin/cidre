@@ -51,13 +51,13 @@ app := cidre.NewApp(cidre.DefaultAppConfig())
 app.Use(cidre.NewSessionMiddleware(app, sessionConfig, nil))
 
 root := app.MountPoint("/")
-root.Use(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request){
+root.Use(func(w http.ResponseWriter, r *http.Request){
   // do something
 
   cidre.RequestContext(r).MiddlewareChain.DoNext(w,r)
 
   // do something
-}))
+})
 ~~~
 
 ## HTML rendering
@@ -69,7 +69,8 @@ app := cidre.NewApp(appconfig)
 
 root := app.MountPoint("/")
 root.Get("page", "page", func(w http.ResponseWriter, r *http.Request) {
-  app.Renderer.Html("template_name", map[string]interface{}{"key":"value})
+  view := cidre.Dict{"key":"value"}
+  app.Renderer.Html(w, "template_name", view)
 })
 ~~~
 
@@ -77,6 +78,7 @@ root.Get("page", "page", func(w http.ResponseWriter, r *http.Request) {
 
 ~~~ go
 app := cidre.NewApp(cidre.DefaultAppConfig())
+sessionConfig := cidre.DefaultSessionConfig()
 app.Use(cidre.NewSessionMiddleware(app, sessionConfig, nil))
 
 root := app.MountPoint("/")
@@ -99,7 +101,7 @@ Addr = 127.0.0.1:8080
 CookieName = sessionid
 Secret = some very secret
 ~~~
-
+code:
 ~~~ go
 appConfig := cidre.DefaultAppConfig()
 sessionConfig := cidre.DefaultSessionConfig()
@@ -124,7 +126,7 @@ app.Hooks.Add("start_request", func(w http.ResponseWriter, r *http.Request, data
 })
 
 root := app.MountPoint("/")
-root.Use(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request){
+root.Use(func(w http.ResponseWriter, r *http.Request){
 
    w.(cidre.ResponseWriter).Hooks().Add("before_write_content", func(w http.ResponseWriter, rnil *http.Request, datanil interface{}) {
       // do some stuff
@@ -132,5 +134,5 @@ root.Use(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request){
 
   cidre.RequestContext(r).MiddlewareChain.DoNext(w,r)
 
-}))
+})
 ~~~
