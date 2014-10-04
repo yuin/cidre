@@ -51,13 +51,13 @@ app := cidre.NewApp(cidre.DefaultAppConfig())
 app.Use(cidre.NewSessionMiddleware(app, sessionConfig, nil))
 
 root := app.MountPoint("/")
-root.Use(func(w http.ResponseWriter, r *http.Request){
+root.Use(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request){
   // do something
 
   cidre.RequestContext(r).MiddlewareChain.DoNext(w,r)
 
   // do something
-})
+}))
 ~~~
 
 ## HTML rendering
@@ -124,7 +124,7 @@ app.Hooks.Add("start_request", func(w http.ResponseWriter, r *http.Request, data
 })
 
 root := app.MountPoint("/")
-root.Use(func(w http.ResponseWriter, r *http.Request){
+root.Use(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request){
 
    w.(cidre.ResponseWriter).Hooks().Add("before_write_content", func(w http.ResponseWriter, rnil *http.Request, datanil interface{}) {
       // do some stuff
@@ -132,5 +132,5 @@ root.Use(func(w http.ResponseWriter, r *http.Request){
 
   cidre.RequestContext(r).MiddlewareChain.DoNext(w,r)
 
-})
+}))
 ~~~
