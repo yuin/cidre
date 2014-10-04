@@ -7,6 +7,7 @@ package main
 
 import (
   "github.com/yuin/cidre"
+  "net/http"
 )
 
 func main() {
