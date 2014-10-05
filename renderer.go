@@ -21,13 +21,13 @@ type Renderer interface {
 	Compile()
 	// Renders a template file specified by the given name
 	RenderTemplateFile(io.Writer, string, interface{})
-	// Writes the contents and the Content-type header to the http.ResponseWriter.
+	// Writes the contents and the Content-Type header to the http.ResponseWriter.
 	Html(http.ResponseWriter, ...interface{})
-	// Writes the contents and the Content-type header to the http.ResponseWriter.
+	// Writes the contents and the Content-Type header to the http.ResponseWriter.
 	Json(http.ResponseWriter, ...interface{})
-	// Writes the contents and the Content-type header to the http.ResponseWriter.
+	// Writes the contents and the Content-Type header to the http.ResponseWriter.
 	Xml(http.ResponseWriter, ...interface{})
-	// Writes the contents and the Content-type header to the http.ResponseWriter.
+	// Writes the contents and the Content-Type header to the http.ResponseWriter.
 	Text(http.ResponseWriter, ...interface{})
 }
 
@@ -35,7 +35,9 @@ type BaseRenderer struct{}
 
 // Json(w http.ResponseWriter, object interface{})
 func (self *BaseRenderer) Json(w http.ResponseWriter, args ...interface{}) {
-	w.Header().Set("Content-type", "application/json")
+	if len(w.Header().Get("Content-Type")) == 0 {
+		w.Header().Set("Content-Type", "application/json")
+	}
 	obj := args[0]
 	encoder := json.NewEncoder(w)
 	if err := encoder.Encode(obj); err != nil {
@@ -45,7 +47,9 @@ func (self *BaseRenderer) Json(w http.ResponseWriter, args ...interface{}) {
 
 // Xml(w http.ResponseWriter, object interface{})
 func (self *BaseRenderer) Xml(w http.ResponseWriter, args ...interface{}) {
-	w.Header().Set("Content-type", "application/xml; charset=UTF-8")
+	if len(w.Header().Get("Content-Type")) == 0 {
+		w.Header().Set("Content-Type", "application/xml; charset=UTF-8")
+	}
 	obj := args[0]
 	encoder := xml.NewEncoder(w)
 	if err := encoder.Encode(obj); err != nil {
@@ -55,10 +59,11 @@ func (self *BaseRenderer) Xml(w http.ResponseWriter, args ...interface{}) {
 
 // Text(w http.ResponseWriter, format string, formatargs ...interface{})
 func (self *BaseRenderer) Text(w http.ResponseWriter, args ...interface{}) {
+	if len(w.Header().Get("Content-Type")) == 0 {
+		w.Header().Set("Content-Type", "text/plain; charset=UTF-8")
+	}
 	format := args[0].(string)
-	formatargs := args[1 : len(args)-1]
-	charset := args[len(args)-1].(string)
-	w.Header().Set("Content-type", "text/plain; charset="+charset)
+	formatargs := args[1:len(args)]
 	fmt.Fprintf(w, format, formatargs...)
 }
 
@@ -204,7 +209,9 @@ func (self *HtmlTemplateRenderer) RenderTemplateFile(w io.Writer, name string, p
 }
 
 func (self *HtmlTemplateRenderer) Html(w http.ResponseWriter, args ...interface{}) {
-	w.Header().Set("Content-type", "text/html; charset=UTF-8")
+	if len(w.Header().Get("Content-Type")) == 0 {
+		w.Header().Set("Content-Type", "text/html; charset=UTF-8")
+	}
 	name := args[0].(string)
 	param := args[1]
 	self.RenderTemplateFile(w, name, param)

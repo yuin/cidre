@@ -16,9 +16,9 @@ type dynamicObjectFactory map[string]reflect.Type
 var dynamicObjectFactoryCh = make(chan bool, 1)
 
 // DynamicObjectFactory provides functions to create an object by string name.
-// 
+//
 //     package mypackage
-//     
+//
 //     type MyObject struct {}
 //     DynamicObjectFactory.Register(MyObject{})
 //     DynamicObjectFactory.New("mypackage.MyObject")
@@ -102,6 +102,7 @@ func (self Dict) Set(key string, value interface{}) {
 func (self Dict) Del(key string) {
 	delete(self, key)
 }
+
 //}}}
 
 // String utils {{{

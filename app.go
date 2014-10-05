@@ -130,7 +130,6 @@ type responseWriter struct {
 // Returns a new ResponseWriter object wrap around the given http.ResponseWriter object.
 func NewResponseWriter(w http.ResponseWriter) ResponseWriter {
 	self := &responseWriter{w, 0, 0, make(Hooks)}
-	self.Header().Set("Content-type", "text/plain")
 	return self
 }
 
@@ -204,20 +203,20 @@ func (self *MiddlewareChain) DoNext(w http.ResponseWriter, r *http.Request) {
 }
 
 func MiddlewareOf(arg interface{}) Middleware {
-  switch arg.(type) {
-  case http.Handler:
-    return arg.(Middleware)
-  default:
-    return Middleware(http.HandlerFunc(arg.(func(http.ResponseWriter, *http.Request))))
-  }
+	switch arg.(type) {
+	case http.Handler:
+		return arg.(Middleware)
+	default:
+		return Middleware(http.HandlerFunc(arg.(func(http.ResponseWriter, *http.Request))))
+	}
 }
 
 func MiddlewaresOf(args ...interface{}) []Middleware {
-  result := make([]Middleware, 0, len(args))
-  for _, arg := range args {
-    result = append(result, MiddlewareOf(arg))
-  }
-  return result
+	result := make([]Middleware, 0, len(args))
+	for _, arg := range args {
+		result = append(result, MiddlewareOf(arg))
+	}
+	return result
 }
 
 /* }}} */
@@ -313,7 +312,7 @@ func (self *MountPoint) Use(middlewares ...interface{}) {
 	self.Middlewares = append(self.Middlewares, MiddlewaresOf(middlewares...)...)
 }
 
- // Registers a http.HandlerFunc and middlewares with the given path pattern and method. 
+// Registers a http.HandlerFunc and middlewares with the given path pattern and method.
 func (self *MountPoint) Route(n, p, m string, s bool, h http.HandlerFunc, middlewares ...interface{}) {
 	mds := make([]Middleware, 0, 10)
 	mds = append(mds, self.Middlewares...)
@@ -357,28 +356,26 @@ func (self *MountPoint) Static(n, p, local string, middlewares ...interface{}) {
 
 // AppConfig is a configuration object for the App struct.
 type AppConfig struct {
-    // default : false
-	Debug             bool
-    // Server address, default:"127.0.0.1:8080"
-	Addr              string
-    // default: ""
+	// default : false
+	Debug bool
+	// Server address, default:"127.0.0.1:8080"
+	Addr string
+	// default: ""
 	TemplateDirectory string
-    // cidre uses text/template to format access logs.
-    // default: "{{.c.Id}} {{.req.RemoteAddr}} {{.req.Method}} {{.req.RequestURI}} {{.req.Proto}} {{.res.Status}} {{.res.ContentLength}} {{.c.ResponseTime}}"
-	AccessLogFormat   string
-    // default: 180s
-	ReadTimeout       time.Duration
-    // default: 180s
-	WriteTimeout      time.Duration
-    // default: 8192
-	MaxHeaderBytes    int
-    // default: false
-	KeepAlive         bool
-    // calls runtime.GOMAXPROCS(runtime.NumCPU()) when server starts if AutoMaxProcs is true.
-    // default: true
-	AutoMaxProcs      bool
-    // cidre.Renderer object name
-	Renderer          string
+	// cidre uses text/template to format access logs.
+	// default: "{{.c.Id}} {{.req.RemoteAddr}} {{.req.Method}} {{.req.RequestURI}} {{.req.Proto}} {{.res.Status}} {{.res.ContentLength}} {{.c.ResponseTime}}"
+	AccessLogFormat string
+	// default: 180s
+	ReadTimeout time.Duration
+	// default: 180s
+	WriteTimeout time.Duration
+	// default: 8192
+	MaxHeaderBytes int
+	// default: false
+	KeepAlive bool
+	// calls runtime.GOMAXPROCS(runtime.NumCPU()) when server starts if AutoMaxProcs is true.
+	// default: true
+	AutoMaxProcs bool
 }
 
 // Returns a new AppConfig object that has default values set.
@@ -411,14 +408,14 @@ func DefaultAppConfig(init ...func(*AppConfig)) *AppConfig {
 //   - end_action(http.ResponseWriter, *http.Request, nil)
 //   - end_request(http.ResponseWriter, *http.Request, nil)
 type App struct {
-	Config            *AppConfig
-	Routes            map[string]*Route
-	Middlewares       []Middleware
-	Logger            Logger
-	AccessLogger      Logger
-    // handlers to be called if errors was occurred during a request.
-	OnPanic           func(http.ResponseWriter, *http.Request, interface{})
-    // handlers to be called if no suitable routes found.
+	Config       *AppConfig
+	Routes       map[string]*Route
+	Middlewares  []Middleware
+	Logger       Logger
+	AccessLogger Logger
+	// handlers to be called if errors was occurred during a request.
+	OnPanic func(http.ResponseWriter, *http.Request, interface{})
+	// handlers to be called if no suitable routes found.
 	OnNotFound        func(http.ResponseWriter, *http.Request)
 	Renderer          Renderer
 	Hooks             Hooks
@@ -544,20 +541,19 @@ func (self *App) writeAccessLog(w http.ResponseWriter, r *http.Request, d interf
 	self.AccessLogger(LogLevelInfo, s)
 }
 
-// 
+//
 func (self *App) Setup() {
 	if self.Config.AutoMaxProcs {
 		runtime.GOMAXPROCS(runtime.NumCPU())
 	}
-	if self.Renderer != nil {
-		self.Renderer.Compile()
-	}
-	if len(self.Config.TemplateDirectory) > 0 {
+	if self.Renderer == nil {
 		cfg := DefaultHtmlTemplateRendererConfig()
 		cfg.TemplateDirectory = self.Config.TemplateDirectory
 		self.Renderer = NewHtmlTemplateRenderer(cfg)
 		self.Renderer.Compile()
 	}
+	self.Renderer.Compile()
+
 	tmpl, err := template.New("cidre.acccesslog").Parse(self.Config.AccessLogFormat)
 	if err != nil {
 		panic(err)

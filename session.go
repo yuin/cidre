@@ -13,21 +13,21 @@ import (
 
 // SessionConfig is a configuration object for the SessionMiddleware
 type SessionConfig struct {
-    // default: gossessionid
-	CookieName    string
-	CookieDomain  string
-    // default: false
+	// default: gossessionid
+	CookieName   string
+	CookieDomain string
+	// default: false
 	CookieSecure  bool
 	CookiePath    string
 	CookieExpires time.Duration
-    // A term used to authenticate the cookie value using HMAC
-	Secret        string
-    // default: "cidre.MemorySessionStore"
-	SessionStore  string
-    // default: 30m
-	GcInterval    time.Duration
-    // default: 30m
-	LifeTime      time.Duration
+	// A term used to authenticate the cookie value using HMAC
+	Secret string
+	// default: "cidre.MemorySessionStore"
+	SessionStore string
+	// default: 30m
+	GcInterval time.Duration
+	// default: 30m
+	LifeTime time.Duration
 }
 
 // Returns a SessionConfig object that has default values set.
@@ -158,8 +158,8 @@ const FlashKey = "_flash"
 
 func NewSession(id string) *Session {
 	self := &Session{
-		Dict: NewDict(),
-		Killed:     false, Id: id,
+		Dict:   NewDict(),
+		Killed: false, Id: id,
 		LastAccessTime: time.Now()}
 	self.Set(FlashKey, make(map[string][]string))
 	return self
@@ -203,7 +203,7 @@ func (self *Session) Flash(category string) []string {
 func (self *Session) Flashes() map[string][]string {
 	flash := self.Get(FlashKey).(map[string][]string)
 	self.Set(FlashKey, make(map[string][]string))
-    return flash
+	return flash
 }
 
 // SessionStore is an interface for custom session stores.

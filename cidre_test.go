@@ -12,4 +12,3 @@ func errorIfNotEqual(t *testing.T, v1, v2 interface{}) {
 		t.Errorf("%v line %v: '%v' expected, but got '%v'", filepath.Base(file), line, v1, v2)
 	}
 }
-

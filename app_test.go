@@ -11,18 +11,19 @@ import (
 
 func TestAppAction(t *testing.T) {
 	app := NewApp(DefaultAppConfig())
+    app.Renderer = NewHtmlTemplateRenderer(DefaultHtmlTemplateRendererConfig())
 	p1 := app.MountPoint("/p1")
 
 	p1.Get("page1", "page1/(?P<param1>[^/]+)", func(w http.ResponseWriter, r *http.Request) {
-		fmt.Fprintf(w, "value:%v", RequestContext(r).PathParams.Get("param1"))
+		app.Renderer.Text(w, "value:%v", RequestContext(r).PathParams.Get("param1"))
 	})
 
 	req, _ := http.NewRequest("GET", "/p1/page1/value", nil)
 	writer := httptest.NewRecorder()
 	app.ServeHTTP(writer, req)
-	errorIfNotEqual(t, writer.Body.String(), "value:value")
+	errorIfNotEqual(t, "value:value", writer.Body.String())
 	errorIfNotEqual(t, 200, writer.Code)
-	errorIfNotEqual(t, "text/plain", writer.Header().Get("Content-type"))
+	errorIfNotEqual(t, "text/plain; charset=UTF-8", writer.Header().Get("Content-Type"))
 }
 
 func TestAppNotFound(t *testing.T) {
@@ -96,22 +97,22 @@ func TestAppBuildUrl(t *testing.T) {
 func TestAppMiddleware(t *testing.T) {
 	testMd1 := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte("md1-1"))
-		RequestContext(r).MiddlewareChain.DoNext(w,r)
+		RequestContext(r).MiddlewareChain.DoNext(w, r)
 		w.Write([]byte("md1-2"))
 	})
 	testMd2 := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte("md2-1"))
-		RequestContext(r).MiddlewareChain.DoNext(w,r)
+		RequestContext(r).MiddlewareChain.DoNext(w, r)
 		w.Write([]byte("md2-2"))
 	})
 	testMd3 := func(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte("md3-1"))
-		RequestContext(r).MiddlewareChain.DoNext(w,r)
+		RequestContext(r).MiddlewareChain.DoNext(w, r)
 		w.Write([]byte("md3-2"))
 	}
-    testMd4 := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	testMd4 := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte("md4-1"))
-		RequestContext(r).MiddlewareChain.DoNext(w,r)
+		RequestContext(r).MiddlewareChain.DoNext(w, r)
 		w.Write([]byte("md4-2"))
 	})
 	app := NewApp(DefaultAppConfig())
@@ -143,23 +144,23 @@ func TestResponseWriterHooks(t *testing.T) {
 	app := NewApp(DefaultAppConfig())
 	p1 := app.MountPoint("/p1")
 
-    result := ""
+	result := ""
 	p1.Get("page1", "page1/(?P<param1>[^/]+)", func(w http.ResponseWriter, r *http.Request) {
-      w.(ResponseWriter).Hooks().Add("before_write_header", func(w http.ResponseWriter, r *http.Request, data interface{}){
-        result = result+"3"
-      })
-      w.(ResponseWriter).Hooks().Add("before_write_header", func(w http.ResponseWriter, r *http.Request, data interface{}){
-        result = result+"2"
-      })
-      w.(ResponseWriter).Hooks().Add("before_write_content", func(w http.ResponseWriter, r *http.Request, data interface{}){
-        result = result+"4"
-      })
-      result = "1"
-      w.Write([]byte(""))
+		w.(ResponseWriter).Hooks().Add("before_write_header", func(w http.ResponseWriter, r *http.Request, data interface{}) {
+			result = result + "3"
+		})
+		w.(ResponseWriter).Hooks().Add("before_write_header", func(w http.ResponseWriter, r *http.Request, data interface{}) {
+			result = result + "2"
+		})
+		w.(ResponseWriter).Hooks().Add("before_write_content", func(w http.ResponseWriter, r *http.Request, data interface{}) {
+			result = result + "4"
+		})
+		result = "1"
+		w.Write([]byte(""))
 	})
 
 	req, _ := http.NewRequest("GET", "/p1/page1/value", nil)
 	writer := httptest.NewRecorder()
 	app.ServeHTTP(writer, req)
-    errorIfNotEqual(t, "1234" ,result)
+	errorIfNotEqual(t, "1234", result)
 }
