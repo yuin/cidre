@@ -1,0 +1,243 @@
+<!DOCTYPE HTML>
+<!--
+	Strongly Typed by HTML5 UP
+	html5up.net | @n33co
+	Free for personal and commercial use under the CCA 3.0 license (html5up.net/license)
+-->
+<html>
+	<head>
+		<title>cidre - A modular and extensible thin web framework in Go</title>
+		<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+		<meta name="description" content="" />
+		<meta name="keywords" content="golang,cidre,framework,web,go" />
+		<!--[if lte IE 8]><script src="css/ie/html5shiv.js"></script><![endif]-->
+		<script src="js/jquery.min.js"></script>
+		<script src="js/jquery.dropotron.min.js"></script>
+		<script src="js/skel.min.js"></script>
+		<script src="js/skel-layers.min.js"></script>
+		<script src="js/init.js"></script>
+        <script src="https://google-code-prettify.googlecode.com/svn/loader/run_prettify.js?skin=desert"></script>
+        <style>
+        .prettyprint {
+            text-align:left;
+            white-space:pre-wrap;
+            word-wrap:break-word;
+            padding-left:0.5em;
+            border-radius: 1em;
+            margin: 0 auto;
+            margin-top: 2em;
+            margin-bottom: 2em;
+        }
+        </style>
+		<noscript>
+			<link rel="stylesheet" href="css/skel.css" />
+			<link rel="stylesheet" href="css/style.css" />
+			<link rel="stylesheet" href="css/style-desktop.css" />
+		</noscript>
+		<!--[if lte IE 8]><link rel="stylesheet" href="css/ie/v8.css" /><![endif]-->
+	</head>
+	<body class="homepage">
+
+		<!-- Header -->
+			<div id="header-wrapper">
+				<div id="header" class="container">
+					
+					<!-- Logo -->
+						<h1 id="logo">cidre</h1>
+						<p>A modular and extensible thin web framework in Go.</p>
+                                    <pre class="prettyprint lang-go" style="width:65%;"> 
+package main
+
+import (
+  "github.com/yuin/cidre"
+  "net/http"
+)
+
+func main() {
+    app := cidre.NewApp(cidre.DefaultAppConfig())
+    root := app.MountPoint("/")
+
+    root.Get("show_welcome", "welcome", func(w http.ResponseWriter, r *http.Request) {
+        app.Renderer.Text(w, "Welcome!")
+    })
+
+    app.Run()
+}
+                                    </pre>
+					<!-- Nav -->
+						<nav id="nav">
+							<ul>
+								<li><a class="icon fa-github" href="https://github.com/yuin/cidre" target="_blank" rel="external"><span>GitHub</span></a></li>
+								<li><a class="icon fa-book" href="http://godoc.org/github.com/yuin/cidre" target="_blank" rel="external"><span>Godoc</span></a></li>
+								<li><a class="icon fa-file-text-o" href="./docs.html"><span>Docs</span></a></li>
+							</ul>
+						</nav>
+
+				</div>
+
+			</div>
+			
+		<!-- Features -->
+			<div id="features-wrapper">
+				<section id="features" class="container">
+					<header>
+                        <h2><strong>Features</strong></h2>
+					</header>
+					<div class="row">
+						<div class="4u">
+
+							<!-- Feature -->
+								<section>
+									<header>
+										<h3>Go way of doing things.</h3>
+									</header>
+                                    <p>
+                                    cidre embraces Go standard library APIs as APIs. cidre Apps, Middlewares and URL Handlers are just <code>http.Handler</code>. 
+                                    </p>
+								</section>
+
+						</div>
+						<div class="4u">
+
+							<!-- Feature -->
+								<section>
+									<header>
+										<h3>Modular and extensible.</h3>
+									</header>
+                                    <p>Middleware provide additional optional functionality for cidre. Middleware is just http.Handler, 
+                                    so it is easy to write your own middleware.
+                                    And what is more well-designed hook points are available. Hooks allow you to add your own code to cidre that runs when specific events or actions occur inside cidre. 
+                                    </p>
+								</section>
+								
+						</div>
+						<div class="4u">
+
+							<!-- Feature -->
+								<section>
+									<header>
+										<h3>Thin, but well-chosen.</h3>
+									</header>
+                                    <p>cidre is simple and thin, but includes functions that might be optional in other tiny frameworks: Sessions, Loggings, Configuration file.
+                                    </p>
+								</section>
+
+						</div>
+					</div>
+					<ul class="actions">
+						<li><a href="https://github.com/yuin/cidre" class="button icon fa-github" target="_blank" rel="external">CODE</a></li>
+						<li><a href="http://godoc.org/github.com/yuin/cidre" class="button icon fa-book" target="_blank" rel="external">DOC</a></li>
+					</ul>
+				</section>		
+			</div>
+
+		<!-- Banner -->
+			<div id="banner-wrapper">
+				<div class="inner">
+					<section id="banner" class="container">
+                      <p>It's better to keep it simple.</p>
+					</section>
+				</div>
+			</div>
+		
+		<!-- Main -->
+			<div id="main-wrapper">
+				<div id="main" class="container">
+					<div class="row">
+                      <div class="8u">
+					    <article class="box post">
+							<header>
+                              <h2>Quick Start</h2>
+							</header>
+                            <p>1. Install
+                              <pre class="prettyprint lang-bash">
+go get github.com/yuin/cidre
+                              </pre>
+                            </p>
+                            <p>2. Create first app.go
+                              <pre class="prettyprint lang-go">
+package main
+
+import (
+  "github.com/yuin/cidre"
+  "net/http"
+)
+
+func main() {
+    app := cidre.NewApp(cidre.DefaultAppConfig())
+    root := app.MountPoint("/")
+
+    root.Get("show_welcome", "welcome", func(w http.ResponseWriter, r *http.Request) {
+        app.Renderer.Text(w, "Welcome!")
+    })
+
+    app.Run()
+}
+                              </pre>
+                            </p>
+                        </article>
+                      </div>
+                      <div class="4u">
+					    <article class="box post">
+							<header>
+                              <h2>&nbsp;</h2>
+							</header>
+                           <p>3. Build it
+                              <pre class="prettyprint lang-bash">
+go build app.go
+                              </pre>
+                           </p>
+                           <p>4. Run it
+                              <pre class="prettyprint lang-bash">
+./app
+                              </pre>
+                              Open your browser to http://localhost:8080/welcome.
+                              For further information please visit <a href="./docs.html">Docs page</a>.
+                           </p>
+                        </article>
+                    </div>
+
+					<div class="row">
+					
+						<!-- Content -->
+							<div id="content" class="12u">
+
+								<!-- Post 
+									<article class="box post">
+										<header>
+                                          <h2></h2>
+										</header>
+                                        <h3></h3>
+										<p>
+                                        </p>
+									</article>
+                                    -->
+							</div>
+
+					</div>
+				</div>
+			</div>
+
+		<!-- Footer -->
+			<div id="footer-wrapper">
+				<div id="footer" class="container">
+					<header>
+						<h2> <strong>Contribute</strong></h2>
+					</header>
+					<div class="row">
+                      <div class="12u">
+                        <p style="text-align:center;">
+                        Visit <a href="https://github.com/yuin/cidre" target="_blank" rel="external">cidre github page</a> and fork it or create a new ticket.
+                        </p>
+                      </div>
+					</div>
+				</div>
+				<div id="copyright" class="container">
+					<ul class="links">
+                      <li>&copy; <a href="http://inforno.net/" rel="external" target="_blank">Yusuke Inuzuka</a> All rights reserved.</li><li>Design: <a href="http://html5up.net">HTML5 UP</a></li>
+					</ul>
+				</div>
+			</div>
+
+	</body>
+</html>
