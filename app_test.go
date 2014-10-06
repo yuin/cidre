@@ -83,6 +83,19 @@ func TestAppPanic(t *testing.T) {
 	errorIfNotEqual(t, "Oops!", writer.Body.String())
 }
 
+func TestAppHttpMethodOverwrite(t *testing.T){
+	app := NewApp(DefaultAppConfig())
+	root := app.MountPoint("/")
+    root.Delete("p1", "p1", func(w http.ResponseWriter, r *http.Request) {
+      fmt.Fprint(w, "ok")
+    })
+    req, _ := http.NewRequest("POST", "/p1", strings.NewReader("_method=delete"))
+    req.Header.Set("Content-Type", "application/x-www-form-urlencoded;")
+    writer := httptest.NewRecorder()
+	app.ServeHTTP(writer, req)
+    errorIfNotEqual(t, "ok", writer.Body.String())
+}
+
 func TestAppBuildUrl(t *testing.T) {
 	app := NewApp(DefaultAppConfig())
 	root := app.MountPoint("/")

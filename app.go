@@ -362,6 +362,8 @@ type AppConfig struct {
 	Addr string
 	// default: ""
 	TemplateDirectory string
+    // default: true, if this value is true, cidre will treat a "_method" parameter as a HTTP method name.
+    AllowHttpMethodOverwrite bool
 	// cidre uses text/template to format access logs.
 	// default: "{{.c.Id}} {{.req.RemoteAddr}} {{.req.Method}} {{.req.RequestURI}} {{.req.Proto}} {{.res.Status}} {{.res.ContentLength}} {{.c.ResponseTime}}"
 	AccessLogFormat string
@@ -386,6 +388,7 @@ func DefaultAppConfig(init ...func(*AppConfig)) *AppConfig {
 		Debug:             false,
 		Addr:              "127.0.0.1:8080",
 		TemplateDirectory: "",
+        AllowHttpMethodOverwrite: true,
 		AccessLogFormat:   "{{.c.Id}} {{.req.RemoteAddr}} {{.req.Method}} {{.req.RequestURI}} {{.req.Proto}} {{.res.Status}} {{.res.ContentLength}} {{.c.ResponseTime}}",
 		ReadTimeout:       time.Second * 180,
 		WriteTimeout:      time.Second * 180,
@@ -502,8 +505,14 @@ func (self *App) ServeHTTP(ww http.ResponseWriter, r *http.Request) {
 	self.Hooks.Run("start_request", HookDirectionNormal, w, r, nil)
 
 	path := r.URL.Path
+    method := r.Method
+    if self.Config.AllowHttpMethodOverwrite {
+      if overwrittenMethod := r.PostFormValue("_method"); len(overwrittenMethod) > 0 {
+        method = overwrittenMethod
+      }
+    }
 	for _, route := range self.Routes {
-		if strings.ToUpper(r.Method) != strings.ToUpper(route.Method) {
+		if strings.ToUpper(method) != strings.ToUpper(route.Method) {
 			continue
 		}
 
