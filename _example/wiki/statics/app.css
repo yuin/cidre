@@ -207,3 +207,84 @@ body {
 code, kbd, pre, samp {
   font-family: Menlo, Consolas, "Courier New", Courier, "Liberation Mono", monospace;
 }
+.row:before,
+.row:after {
+  content: " ";
+  display: table;
+}
+.row:after {
+  clear: both;
+}
+.row {
+  *zoom: 1;
+}
+
+a {
+  color: #000;
+  text-decoration: underline;
+}
+
+a:hover {
+  text-decoration: none;
+}
+
+#wrapper {
+  max-width: 720px;
+  margin: 0 auto;
+}
+#wrapper > header {
+  background-color: #ccc;
+  height: 10em;
+  padding: 1em;
+  margin: 0 0 0 0;
+  text-align: center;
+}
+#wrapper > header h1 {
+  font-size: 250%;
+}
+#wrapper > header h1 a{
+  color: #000;
+  text-decoration: none;
+}
+
+div[role="main"] nav {
+  padding: 1em;
+}
+
+div[role="main"] nav a {
+  display: block;
+  float  : left;
+  width  : 10em;
+  border-radius: 0.5em; 
+  background-color: #333;
+  color: #ddd;
+  padding: 0.5em;
+  text-align: center;
+  margin-left: 1em;
+}
+
+div[role="main"] article div {
+  border-top: 1px solid #333;
+  padding-top: 1em;
+  min-height: 20em;
+}
+
+.flash-info {
+  width: 50em;
+  margin: 0 auto;
+  border-radius: 0.5em; 
+  background-color: #6666ff;
+  color: #fff;
+  padding: 2em;
+  margin:  1em;
+}
+
+.flash-error {
+  width: 50em;
+  margin: 0 auto;
+  border-radius: 0.5em; 
+  background-color: #ff6666;
+  color: #fff;
+  padding: 2em;
+  margin:  1em;
+}

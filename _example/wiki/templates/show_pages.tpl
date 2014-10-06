@@ -1,6 +1,6 @@
 {{/* extends layout_main */}}
 
-<nav>
+<nav class="row">
   <a onclick="newPage();" href="#">New Page</a>
 </nav>
 
@@ -11,7 +11,7 @@
   <ul>
   {{ $app := .App }}
   {{ range $index, $article := .Data }}
-    <li><a href="{{ $app.BuildUrl "show_page" $article.Name }}">{{ $article.Name }}</a></li>
+    <li>{{ $article.UpdatedAt }} : <a href="{{ $app.BuildUrl "show_page" $article.Name }}">{{ $article.Name }}</a></li>
   {{ end }}
   </ul>
 {{ end }}
