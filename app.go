@@ -111,8 +111,9 @@ func (self Hooks) Add(name string, hook Hook) {
 // ResponseWriter is a wrapper around http.ResponseWriter that provides extra methods about the response.
 //
 // Hook points:
-//     - before_write_header(self, nil, nil)
-//     - before_write_content(self, nil, nil)
+//     - before_write_header(self, nil, status int)
+//     - after_write_header(self, nil, status int)
+//     - before_write_content(self, nil, content []byte)
 type ResponseWriter interface {
 	http.ResponseWriter
 	ContentLength() int
@@ -138,11 +139,10 @@ func (self *responseWriter) Hooks() Hooks {
 }
 
 func (self *responseWriter) WriteHeader(status int) {
-	if self.ContentLength() == 0 {
-		self.Hooks().Run("before_write_header", HookDirectionReverse, self, nil, nil)
-	}
+	self.Hooks().Run("before_write_header", HookDirectionReverse, self, nil, status)
 	self.status = status
 	self.ResponseWriter.WriteHeader(status)
+	self.Hooks().Run("after_write_header", HookDirectionReverse, self, nil, status)
 }
 
 func (self *responseWriter) Write(b []byte) (int, error) {
@@ -150,7 +150,7 @@ func (self *responseWriter) Write(b []byte) (int, error) {
 		if self.status == 0 {
 			self.WriteHeader(200)
 		}
-		self.Hooks().Run("before_write_content", HookDirectionReverse, self, nil, nil)
+		self.Hooks().Run("before_write_content", HookDirectionReverse, self, nil, b)
 	}
 
 	i, err := self.ResponseWriter.Write(b)
