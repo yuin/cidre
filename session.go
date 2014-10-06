@@ -110,8 +110,12 @@ func (self *SessionMiddleware) ServeHTTP(w http.ResponseWriter, r *http.Request)
 			}
 			self.Store.Lock()
 			defer self.Store.Unlock()
+            domain := self.Config.CookieDomain
+            if len(domain) == 0 {
+              domain = strings.Split(r.Host,":")[0]
+            }
 			cookie := &http.Cookie{
-				Domain: self.Config.CookieDomain,
+				Domain: domain,
 				Secure: self.Config.CookieSecure,
 				Path:   self.Config.CookiePath,
 			}
