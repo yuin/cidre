@@ -104,7 +104,7 @@ func (self *SessionMiddleware) ServeHTTP(w http.ResponseWriter, r *http.Request)
 			}
 		}()
 
-		w.(ResponseWriter).Hooks().Add("after_write_header", func(w http.ResponseWriter, rnil *http.Request, datanil interface{}) {
+		w.(ResponseWriter).Hooks().Add("before_write_header", func(w http.ResponseWriter, rnil *http.Request, statusCode interface{}) {
 			if strings.Index(r.URL.Path, self.Config.CookiePath) != 0 {
 				return
 			}
