@@ -15,7 +15,7 @@ type testRenderViewStruct struct {
 
 func TestRendererHtml(t *testing.T) {
 	_, file, _, _ := runtime.Caller(0)
-	tpldir := filepath.Join(filepath.Dir(file), "testing")
+	tpldir := filepath.Join(filepath.Dir(file), "_testdata")
 	renderer := NewHtmlTemplateRenderer(DefaultHtmlTemplateRendererConfig(
 		func(config *HtmlTemplateRendererConfig) {
 			config.TemplateDirectory = tpldir

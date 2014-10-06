@@ -24,7 +24,7 @@ type configTest2Struct struct {
 func TestConfig(t *testing.T) {
 	_, file, _, _ := runtime.Caller(0)
 	directory := filepath.Dir(file)
-	confFile := filepath.Join(directory, "testing", "test1.ini")
+	confFile := filepath.Join(directory, "_testdata", "test1.ini")
 	conf1 := &configTest1Struct{10, 10.0, 10, "0"}
 	ParseIniFile(confFile, ConfigMapping{"yourconfig1", conf1})
 	errorIfNotEqual(t, 1, conf1.ConfInt)
