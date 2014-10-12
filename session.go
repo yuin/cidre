@@ -118,6 +118,7 @@ func (self *SessionMiddleware) ServeHTTP(w http.ResponseWriter, r *http.Request)
 				Domain: domain,
 				Secure: self.Config.CookieSecure,
 				Path:   self.Config.CookiePath,
+                HttpOnly: true,
 			}
 			if self.Config.CookieExpires != 0 {
 				cookie.Expires = time.Now().Add(self.Config.CookieExpires)
