@@ -552,24 +552,22 @@ func (self *App) writeAccessLog(w http.ResponseWriter, r *http.Request, d interf
 
 //
 func (self *App) Setup() {
-	if self.Config.AutoMaxProcs {
-		runtime.GOMAXPROCS(runtime.NumCPU())
-	}
 	if self.Renderer == nil {
 		cfg := DefaultHtmlTemplateRendererConfig()
 		cfg.TemplateDirectory = self.Config.TemplateDirectory
 		self.Renderer = NewHtmlTemplateRenderer(cfg)
-		self.Renderer.Compile()
+	}
+	self.Hooks.Add("end_request", self.writeAccessLog)
+	self.Hooks.Run("setup", HookDirectionNormal, nil, nil, self)
+	if self.Config.AutoMaxProcs {
+		runtime.GOMAXPROCS(runtime.NumCPU())
 	}
 	self.Renderer.Compile()
-
 	tmpl, err := template.New("cidre.acccesslog").Parse(self.Config.AccessLogFormat)
 	if err != nil {
 		panic(err)
 	}
 	self.accessLogTemplate = tmpl
-	self.Hooks.Add("end_request", self.writeAccessLog)
-	self.Hooks.Run("setup", HookDirectionNormal, nil, nil, self)
 }
 
 // Returns a new http.Server object.
