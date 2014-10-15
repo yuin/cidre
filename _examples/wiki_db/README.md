@@ -7,7 +7,7 @@ A simple wiki example written in cidre web framwork with the [gorm](https://gith
 ~~~
 go get github.com/yuin/cidre
 go get github.com/mattn/go-sqlite3
-go get github.com/yuin/cidre
+go github.com/jinzhu/gorm
 git clone https://github.com/yuin/cidre.git
 cd cidre/_examples/wiki_db
 go build app.go 
