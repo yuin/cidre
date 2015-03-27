@@ -93,8 +93,8 @@ func ParseIniFile(filepath string, mappings ...ConfigMapping) (ConfigContainer, 
 	return result, nil
 }
 
-func (self ConfigContainer) Mapping(section string, sdata interface{}) {
-	mdata := self[section]
+func (cc ConfigContainer) Mapping(section string, sdata interface{}) {
+	mdata := cc[section]
 	vt := reflect.ValueOf(sdata).Elem()
 	tt := reflect.TypeOf(sdata).Elem()
 	for i := 0; i < vt.NumField(); i += 1 {

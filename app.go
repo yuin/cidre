@@ -51,8 +51,8 @@ func NewContext(app *App, id string, r *http.Request) *Context {
 
 // Returns true if the matched route is dynamic, false if there is no matched
 // routes or the matched route is for static files.
-func (self *Context) IsDynamicRoute() bool {
-	return self.Route != nil && !self.Route.IsStatic
+func (ctx *Context) IsDynamicRoute() bool {
+	return ctx.Route != nil && !ctx.Route.IsStatic
 }
 
 // Returns a contenxt object associated with the given request.
@@ -82,13 +82,13 @@ const (
 )
 
 // Executes hooks associated with the given name.
-func (self Hooks) Run(name string, direction HookDirection, w http.ResponseWriter, r *http.Request, data interface{}) {
+func (hooks Hooks) Run(name string, direction HookDirection, w http.ResponseWriter, r *http.Request, data interface{}) {
 	if direction == HookDirectionNormal {
-		for _, hook := range self[name] {
+		for _, hook := range hooks[name] {
 			hook(w, r, data)
 		}
 	} else {
-		s := self[name]
+		s := hooks[name]
 		for i := len(s) - 1; i >= 0; i-- {
 			s[i](w, r, data)
 		}
@@ -96,12 +96,12 @@ func (self Hooks) Run(name string, direction HookDirection, w http.ResponseWrite
 }
 
 // Registers a hook to be executed at the given hook point.
-func (self Hooks) Add(name string, hook Hook) {
-	_, ok := self[name]
+func (hooks Hooks) Add(name string, hook Hook) {
+	_, ok := hooks[name]
 	if !ok {
-		self[name] = make([]Hook, 0, 10)
+		hooks[name] = make([]Hook, 0, 10)
 	}
-	self[name] = append(self[name], hook)
+	hooks[name] = append(hooks[name], hook)
 }
 
 /* }}} */
@@ -134,38 +134,38 @@ func NewResponseWriter(w http.ResponseWriter) ResponseWriter {
 	return self
 }
 
-func (self *responseWriter) Hooks() Hooks {
-	return self.hooks
+func (w *responseWriter) Hooks() Hooks {
+	return w.hooks
 }
 
-func (self *responseWriter) WriteHeader(status int) {
-	self.Hooks().Run("before_write_header", HookDirectionReverse, self, nil, status)
-	self.status = status
-	self.ResponseWriter.WriteHeader(status)
-	self.Hooks().Run("after_write_header", HookDirectionReverse, self, nil, status)
+func (w *responseWriter) WriteHeader(status int) {
+	w.Hooks().Run("before_write_header", HookDirectionReverse, w, nil, status)
+	w.status = status
+	w.ResponseWriter.WriteHeader(status)
+	w.Hooks().Run("after_write_header", HookDirectionReverse, w, nil, status)
 }
 
-func (self *responseWriter) Write(b []byte) (int, error) {
-	if self.ContentLength() == 0 {
-		if self.status == 0 {
-			self.WriteHeader(200)
+func (w *responseWriter) Write(b []byte) (int, error) {
+	if w.ContentLength() == 0 {
+		if w.status == 0 {
+			w.WriteHeader(200)
 		}
-		self.Hooks().Run("before_write_content", HookDirectionReverse, self, nil, b)
+		w.Hooks().Run("before_write_content", HookDirectionReverse, w, nil, b)
 	}
 
-	i, err := self.ResponseWriter.Write(b)
+	i, err := w.ResponseWriter.Write(b)
 	if err == nil {
-		self.contentLength += len(b)
+		w.contentLength += len(b)
 	}
 	return i, err
 }
 
-func (self *responseWriter) ContentLength() int {
-	return self.contentLength
+func (w *responseWriter) ContentLength() int {
+	return w.contentLength
 }
 
-func (self *responseWriter) Status() int {
-	return self.status
+func (w *responseWriter) Status() int {
+	return w.status
 }
 
 /* }}} */
@@ -191,15 +191,15 @@ func NewMiddlewareChain(middlewares []Middleware) *MiddlewareChain {
 }
 
 // Returns a copy of the MiddlewareChain object.
-func (self *MiddlewareChain) Copy() *MiddlewareChain {
-	return NewMiddlewareChain(self.middlewares)
+func (mc *MiddlewareChain) Copy() *MiddlewareChain {
+	return NewMiddlewareChain(mc.middlewares)
 }
 
 // Causes the next middleware in the chain to be invoked, or if the calling middleware is
 // the last middleware in the chain, causes the handler at the end of the chain to be invoked.
-func (self *MiddlewareChain) DoNext(w http.ResponseWriter, r *http.Request) {
-	self.sp += 1
-	self.middlewares[self.sp].ServeHTTP(w, r)
+func (mc *MiddlewareChain) DoNext(w http.ResponseWriter, r *http.Request) {
+	mc.sp += 1
+	mc.middlewares[mc.sp].ServeHTTP(w, r)
 }
 
 func MiddlewareOf(arg interface{}) Middleware {
@@ -241,8 +241,8 @@ var logLevelStrings = map[LogLevel]string{
 	LogLevelWarn: "WARN", LogLevelError: "ERROR", LogLevelCrit: "CRIT",
 }
 
-func (self LogLevel) String() string {
-	if v, ok := logLevelStrings[self]; !ok {
+func (ll LogLevel) String() string {
+	if v, ok := logLevelStrings[ll]; !ok {
 		return "UNKNOWN"
 	} else {
 		return v
@@ -289,9 +289,9 @@ func NewRoute(n, p, m string, s bool, handler http.Handler, middlewares ...Middl
 	return self
 }
 
-func (self *Route) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+func (route *Route) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	ctx := RequestContext(r)
-	ctx.MiddlewareChain = self.MiddlewareChain.Copy()
+	ctx.MiddlewareChain = route.MiddlewareChain.Copy()
 	ctx.MiddlewareChain.DoNext(w, r)
 }
 
@@ -308,45 +308,45 @@ type MountPoint struct {
 }
 
 // Adds a middleware to the end of the middleware chain.
-func (self *MountPoint) Use(middlewares ...interface{}) {
-	self.Middlewares = append(self.Middlewares, MiddlewaresOf(middlewares...)...)
+func (mt *MountPoint) Use(middlewares ...interface{}) {
+	mt.Middlewares = append(mt.Middlewares, MiddlewaresOf(middlewares...)...)
 }
 
 // Registers a http.HandlerFunc and middlewares with the given path pattern and method.
-func (self *MountPoint) Route(n, p, m string, s bool, h http.HandlerFunc, middlewares ...interface{}) {
+func (mt *MountPoint) Route(n, p, m string, s bool, h http.HandlerFunc, middlewares ...interface{}) {
 	mds := make([]Middleware, 0, 10)
-	mds = append(mds, self.Middlewares...)
+	mds = append(mds, mt.Middlewares...)
 	mds = append(mds, MiddlewaresOf(middlewares...)...)
-	route := NewRoute(n, self.Path+p, m, s, http.HandlerFunc(h), mds...)
-	self.App.Routes[n] = route
+	route := NewRoute(n, mt.Path+p, m, s, http.HandlerFunc(h), mds...)
+	mt.App.Routes[n] = route
 }
 
 // Shortcut for Route(name, pattern, "GET", false, handler, ...Middleware)
-func (self *MountPoint) Get(n, p string, h http.HandlerFunc, middlewares ...interface{}) {
-	self.Route(n, p, "GET", false, h, middlewares...)
+func (mt *MountPoint) Get(n, p string, h http.HandlerFunc, middlewares ...interface{}) {
+	mt.Route(n, p, "GET", false, h, middlewares...)
 }
 
 // Shortcut for Route(name, pattern, "POST", false, handler, ...Middleware)
-func (self *MountPoint) Post(n, p string, h http.HandlerFunc, middlewares ...interface{}) {
-	self.Route(n, p, "POST", false, h, middlewares...)
+func (mt *MountPoint) Post(n, p string, h http.HandlerFunc, middlewares ...interface{}) {
+	mt.Route(n, p, "POST", false, h, middlewares...)
 }
 
 // Shortcut for Route(name, pattern, "Put", false, handler, ...Middleware)
-func (self *MountPoint) Put(n, p string, h http.HandlerFunc, middlewares ...interface{}) {
-	self.Route(n, p, "PUT", false, h, middlewares...)
+func (mt *MountPoint) Put(n, p string, h http.HandlerFunc, middlewares ...interface{}) {
+	mt.Route(n, p, "PUT", false, h, middlewares...)
 }
 
 // Shortcut for Route(name, pattern, "DELETE", false, handler, ...Middleware)
-func (self *MountPoint) Delete(n, p string, h http.HandlerFunc, middlewares ...interface{}) {
-	self.Route(n, p, "DELETE", false, h, middlewares...)
+func (mt *MountPoint) Delete(n, p string, h http.HandlerFunc, middlewares ...interface{}) {
+	mt.Route(n, p, "DELETE", false, h, middlewares...)
 }
 
 // Registers a handler that serves static files.
-func (self *MountPoint) Static(n, p, local string, middlewares ...interface{}) {
+func (mt *MountPoint) Static(n, p, local string, middlewares ...interface{}) {
 	path := strings.Trim(p, "/")
-	self.Route(n, path+"/(?P<path>.*)", "GET", true,
+	mt.Route(n, path+"/(?P<path>.*)", "GET", true,
 		func(w http.ResponseWriter, r *http.Request) {
-			http.StripPrefix(self.Path+path, http.FileServer(http.Dir(local))).ServeHTTP(w, r)
+			http.StripPrefix(mt.Path+path, http.FileServer(http.Dir(local))).ServeHTTP(w, r)
 		}, middlewares...)
 }
 
@@ -443,26 +443,26 @@ func NewApp(config *AppConfig) *App {
 	return self
 }
 
-func (self *App) newContextId() string {
+func (app *App) newContextId() string {
 	now := time.Now()
-	return fmt.Sprintf("%04d%02d%02d%02d%02d%010d", now.Year(), now.Month(), now.Day(), now.Hour(), now.Minute(), atomic.AddUint32(&(self.contextIdSeq), 1))
+	return fmt.Sprintf("%04d%02d%02d%02d%02d%010d", now.Year(), now.Month(), now.Day(), now.Hour(), now.Minute(), atomic.AddUint32(&(app.contextIdSeq), 1))
 }
 
-func (self *App) DefaultOnPanic(w http.ResponseWriter, r *http.Request, rcv interface{}) {
-	if self.Config.Debug {
+func (app *App) DefaultOnPanic(w http.ResponseWriter, r *http.Request, rcv interface{}) {
+	if app.Config.Debug {
 		http.Error(w, fmt.Sprintf("%v:\n\n%s", rcv, debug.Stack()), http.StatusInternalServerError)
 	} else {
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 	}
 }
 
-func (self *App) DefaultOnNotFound(w http.ResponseWriter, r *http.Request) {
+func (app *App) DefaultOnNotFound(w http.ResponseWriter, r *http.Request) {
 	http.NotFound(w, r)
 }
 
 // Builds an url for the given named route with path parameters.
-func (self *App) BuildUrl(n string, args ...string) string {
-	route, ok := self.Routes[n]
+func (app *App) BuildUrl(n string, args ...string) string {
+	route, ok := app.Routes[n]
 	if !ok {
 		panic(fmt.Sprintf("Route '%v' not defined.", n))
 	}
@@ -475,43 +475,43 @@ func (self *App) BuildUrl(n string, args ...string) string {
 }
 
 // Adds a middleware to the end of the middleware chain.
-func (self *App) Use(middlewares ...interface{}) {
-	self.Middlewares = append(self.Middlewares, MiddlewaresOf(middlewares...)...)
+func (app *App) Use(middlewares ...interface{}) {
+	app.Middlewares = append(app.Middlewares, MiddlewaresOf(middlewares...)...)
 }
 
 // Returns a new MountPoint object associated the given path.
-func (self *App) MountPoint(path string) *MountPoint {
-	mp := &MountPoint{self, strings.TrimRight(path, "/") + "/", make([]Middleware, 0, len(self.Middlewares)+5)}
-	mp.Middlewares = append(mp.Middlewares, self.Middlewares...)
+func (app *App) MountPoint(path string) *MountPoint {
+	mp := &MountPoint{app, strings.TrimRight(path, "/") + "/", make([]Middleware, 0, len(app.Middlewares)+5)}
+	mp.Middlewares = append(mp.Middlewares, app.Middlewares...)
 	return mp
 }
 
-func (self *App) cleanup(w http.ResponseWriter, r *http.Request) {
+func (app *App) cleanup(w http.ResponseWriter, r *http.Request) {
 	if rcv := recover(); rcv != nil {
-		self.OnPanic(w, r, rcv)
+		app.OnPanic(w, r, rcv)
 	}
 	ctx := RequestContext(r)
 	ctx.ResponseTime = time.Now().Sub(ctx.StartedAt)
-	self.Hooks.Run("end_request", HookDirectionReverse, w, r, nil)
+	app.Hooks.Run("end_request", HookDirectionReverse, w, r, nil)
 }
 
-func (self *App) ServeHTTP(ww http.ResponseWriter, r *http.Request) {
+func (app *App) ServeHTTP(ww http.ResponseWriter, r *http.Request) {
 	w := NewResponseWriter(ww)
-	ctx := NewContext(self, self.newContextId(), r)
+	ctx := NewContext(app, app.newContextId(), r)
 	ctx.StartedAt = time.Now()
 
-	defer self.cleanup(w, r)
+	defer app.cleanup(w, r)
 
-	self.Hooks.Run("start_request", HookDirectionNormal, w, r, nil)
+	app.Hooks.Run("start_request", HookDirectionNormal, w, r, nil)
 
 	path := r.URL.Path
     method := r.Method
-    if self.Config.AllowHttpMethodOverwrite {
+    if app.Config.AllowHttpMethodOverwrite {
       if overwrittenMethod := r.PostFormValue("_method"); len(overwrittenMethod) > 0 {
         method = overwrittenMethod
       }
     }
-	for _, route := range self.Routes {
+	for _, route := range app.Routes {
 		if strings.ToUpper(method) != strings.ToUpper(route.Method) {
 			continue
 		}
@@ -529,73 +529,73 @@ func (self *App) ServeHTTP(ww http.ResponseWriter, r *http.Request) {
 	}
 
 	if ctx.Route == nil {
-		self.OnNotFound(w, r)
+		app.OnNotFound(w, r)
 		return
 	}
 
-	self.Hooks.Run("start_action", HookDirectionNormal, w, r, nil)
+	app.Hooks.Run("start_action", HookDirectionNormal, w, r, nil)
 	ctx.Route.ServeHTTP(w, r)
-	self.Hooks.Run("end_action", HookDirectionReverse, w, r, nil)
+	app.Hooks.Run("end_action", HookDirectionReverse, w, r, nil)
 }
 
-func (self *App) writeAccessLog(w http.ResponseWriter, r *http.Request, d interface{}) {
+func (app *App) writeAccessLog(w http.ResponseWriter, r *http.Request, d interface{}) {
 	data := map[string]interface{}{
 		"c":   RequestContext(r),
 		"res": w,
 		"req": r,
 	}
 	var b bytes.Buffer
-	self.accessLogTemplate.Execute(&b, data)
+	app.accessLogTemplate.Execute(&b, data)
 	s := b.String()
-	self.AccessLogger(LogLevelInfo, s)
+	app.AccessLogger(LogLevelInfo, s)
 }
 
 //
-func (self *App) Setup() {
-	if self.Renderer == nil {
+func (app *App) Setup() {
+	if app.Renderer == nil {
 		cfg := DefaultHtmlTemplateRendererConfig()
-		cfg.TemplateDirectory = self.Config.TemplateDirectory
-		self.Renderer = NewHtmlTemplateRenderer(cfg)
+		cfg.TemplateDirectory = app.Config.TemplateDirectory
+		app.Renderer = NewHtmlTemplateRenderer(cfg)
 	}
-	self.Hooks.Add("end_request", self.writeAccessLog)
-	self.Hooks.Run("setup", HookDirectionNormal, nil, nil, self)
-	if self.Config.AutoMaxProcs {
+	app.Hooks.Add("end_request", app.writeAccessLog)
+	app.Hooks.Run("setup", HookDirectionNormal, nil, nil, app)
+	if app.Config.AutoMaxProcs {
 		runtime.GOMAXPROCS(runtime.NumCPU())
 	}
-	self.Renderer.Compile()
-	tmpl, err := template.New("cidre.acccesslog").Parse(self.Config.AccessLogFormat)
+	app.Renderer.Compile()
+	tmpl, err := template.New("cidre.acccesslog").Parse(app.Config.AccessLogFormat)
 	if err != nil {
 		panic(err)
 	}
-	self.accessLogTemplate = tmpl
+	app.accessLogTemplate = tmpl
 }
 
 // Returns a new http.Server object.
-func (self *App) Server() *http.Server {
+func (app *App) Server() *http.Server {
 	server := &http.Server{
-		Addr:           self.Config.Addr,
-		Handler:        self,
-		ReadTimeout:    self.Config.ReadTimeout,
-		WriteTimeout:   self.Config.WriteTimeout,
-		MaxHeaderBytes: self.Config.MaxHeaderBytes,
+		Addr:           app.Config.Addr,
+		Handler:        app,
+		ReadTimeout:    app.Config.ReadTimeout,
+		WriteTimeout:   app.Config.WriteTimeout,
+		MaxHeaderBytes: app.Config.MaxHeaderBytes,
 	}
-	server.SetKeepAlivesEnabled(self.Config.KeepAlive)
+	server.SetKeepAlivesEnabled(app.Config.KeepAlive)
 	return server
 }
 
 // Run the http.Server. If _server is not passed, App.Server() will be used as a http.Server object.
-func (self *App) Run(_server ...*http.Server) {
-	if self.accessLogTemplate == nil {
-		self.Setup()
+func (app *App) Run(_server ...*http.Server) {
+	if app.accessLogTemplate == nil {
+		app.Setup()
 	}
 	var server *http.Server
 	if len(_server) > 0 {
 		server = _server[0]
 	} else {
-		server = self.Server()
+		server = app.Server()
 	}
-	self.Hooks.Run("start_server", HookDirectionNormal, nil, nil, self)
-	self.Logger(LogLevelInfo, fmt.Sprintf("Server started: addr=%v", self.Config.Addr))
+	app.Hooks.Run("start_server", HookDirectionNormal, nil, nil, app)
+	app.Logger(LogLevelInfo, fmt.Sprintf("Server started: addr=%v", app.Config.Addr))
 	server.ListenAndServe()
 }
 

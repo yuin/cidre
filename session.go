@@ -60,43 +60,43 @@ type SessionMiddleware struct {
 
 // Returns a new SessionMiddleware object.
 func NewSessionMiddleware(app *App, config *SessionConfig, storeConfig interface{}) *SessionMiddleware {
-	self := &SessionMiddleware{app: app, Config: config}
-	if len(self.Config.Secret) == 0 {
+	sm := &SessionMiddleware{app: app, Config: config}
+	if len(sm.Config.Secret) == 0 {
 		panic("Session secret must not be empty.")
 	}
 	DynamicObjectFactory.Register(MemorySessionStore{})
-	store, _ := DynamicObjectFactory.New(self.Config.SessionStore).(SessionStore)
-	self.Store = store
-	self.Store.Init(self, storeConfig)
+	store, _ := DynamicObjectFactory.New(sm.Config.SessionStore).(SessionStore)
+	sm.Store = store
+	sm.Store.Init(sm, storeConfig)
 
 	app.Hooks.Add("start_server", func(w http.ResponseWriter, r *http.Request, data interface{}) {
-		time.AfterFunc(self.Config.GcInterval, self.Gc)
+		time.AfterFunc(sm.Config.GcInterval, sm.Gc)
 	})
 
-	return self
+	return sm
 }
 
-func (self *SessionMiddleware) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+func (sm *SessionMiddleware) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	ctx := RequestContext(r)
 	if !ctx.IsDynamicRoute() {
 		ctx.MiddlewareChain.DoNext(w, r)
 	} else {
-		if !strings.HasPrefix(r.URL.Path, self.Config.CookiePath) {
+		if !strings.HasPrefix(r.URL.Path, sm.Config.CookiePath) {
 			return
 		}
 		func() {
-			self.Store.Lock()
-			defer self.Store.Unlock()
-			signedString, _ := r.Cookie(self.Config.CookieName)
+			sm.Store.Lock()
+			defer sm.Store.Unlock()
+			signedString, _ := r.Cookie(sm.Config.CookieName)
 			var session *Session
 			if signedString != nil {
-				sessionId, err := ValidateSignedString(signedString.Value, self.Config.Secret)
+				sessionId, err := ValidateSignedString(signedString.Value, sm.Config.Secret)
 				if err != nil {
 					panic(err)
 				}
-				session = self.Store.Load(sessionId)
+				session = sm.Store.Load(sessionId)
 			} else {
-				session = self.Store.NewSession()
+				session = sm.Store.NewSession()
 			}
 			if session != nil {
 				ctx.Session = session
@@ -105,23 +105,23 @@ func (self *SessionMiddleware) ServeHTTP(w http.ResponseWriter, r *http.Request)
 		}()
 
 		w.(ResponseWriter).Hooks().Add("before_write_header", func(w http.ResponseWriter, rnil *http.Request, statusCode interface{}) {
-			if strings.Index(r.URL.Path, self.Config.CookiePath) != 0 {
+			if strings.Index(r.URL.Path, sm.Config.CookiePath) != 0 {
 				return
 			}
-			self.Store.Lock()
-			defer self.Store.Unlock()
-            domain := self.Config.CookieDomain
+			sm.Store.Lock()
+			defer sm.Store.Unlock()
+            domain := sm.Config.CookieDomain
             if len(domain) == 0 {
               domain = strings.Split(r.Host,":")[0]
             }
 			cookie := &http.Cookie{
 				Domain: domain,
-				Secure: self.Config.CookieSecure,
-				Path:   self.Config.CookiePath,
+				Secure: sm.Config.CookieSecure,
+				Path:   sm.Config.CookiePath,
                 HttpOnly: true,
 			}
-			if self.Config.CookieExpires != 0 {
-				cookie.Expires = time.Now().Add(self.Config.CookieExpires)
+			if sm.Config.CookieExpires != 0 {
+				cookie.Expires = time.Now().Add(sm.Config.CookieExpires)
 			}
 			session := ctx.Session
 			if session == nil {
@@ -129,12 +129,12 @@ func (self *SessionMiddleware) ServeHTTP(w http.ResponseWriter, r *http.Request)
 			}
 			if session.Killed {
 				cookie.MaxAge = -1
-				self.Store.Delete(session.Id)
+				sm.Store.Delete(session.Id)
 			} else {
-				self.Store.Save(session)
+				sm.Store.Save(session)
 			}
-			cookie.Name = self.Config.CookieName
-			cookie.Value = SignString(session.Id, self.Config.Secret)
+			cookie.Name = sm.Config.CookieName
+			cookie.Value = SignString(session.Id, sm.Config.Secret)
 			http.SetCookie(w, cookie)
 		})
 
@@ -143,12 +143,12 @@ func (self *SessionMiddleware) ServeHTTP(w http.ResponseWriter, r *http.Request)
 
 }
 
-func (self *SessionMiddleware) Gc() {
-	self.Store.Lock()
-	defer self.Store.Unlock()
-	self.app.Logger(LogLevelDebug, "Session Gc")
-	self.Store.Gc()
-	time.AfterFunc(self.Config.GcInterval, self.Gc)
+func (sm *SessionMiddleware) Gc() {
+	sm.Store.Lock()
+	defer sm.Store.Unlock()
+	sm.app.Logger(LogLevelDebug, "Session Gc")
+	sm.Store.Gc()
+	time.AfterFunc(sm.Config.GcInterval, sm.Gc)
 }
 
 // Session value container.
@@ -170,17 +170,17 @@ func NewSession(id string) *Session {
 	return self
 }
 
-func (self *Session) UpdateLastAccessTime() {
-	self.LastAccessTime = time.Now()
+func (sess *Session) UpdateLastAccessTime() {
+	sess.LastAccessTime = time.Now()
 }
 
-func (self *Session) Kill() {
-	self.Killed = true
+func (sess *Session) Kill() {
+	sess.Killed = true
 }
 
 // Adds a flash message to the session
-func (self *Session) AddFlash(category string, message string) {
-	flash := self.Get(FlashKey).(map[string][]string)
+func (sess *Session) AddFlash(category string, message string) {
+	flash := sess.Get(FlashKey).(map[string][]string)
 	if _, ok := flash[category]; !ok {
 		flash[category] = make([]string, 0, 10)
 	}
@@ -188,8 +188,8 @@ func (self *Session) AddFlash(category string, message string) {
 }
 
 // Returns a flash message associated with the given category.
-func (self *Session) Flash(category string) []string {
-	flash := self.Get(FlashKey).(map[string][]string)
+func (sess *Session) Flash(category string) []string {
+	flash := sess.Get(FlashKey).(map[string][]string)
 	v, ok := flash[category]
 	delete(flash, category)
 	if !ok {
@@ -205,9 +205,9 @@ func (self *Session) Flash(category string) []string {
 //     session.AddFlash("error", "error message")
 //     messages := session.Flashes()
 //     // -> {"info":["info message1", "info message2"], "error":["error message"]}
-func (self *Session) Flashes() map[string][]string {
-	flash := self.Get(FlashKey).(map[string][]string)
-	self.Set(FlashKey, make(map[string][]string))
+func (sess *Session) Flashes() map[string][]string {
+	flash := sess.Get(FlashKey).(map[string][]string)
+	sess.Set(FlashKey, make(map[string][]string))
 	return flash
 }
 
@@ -232,60 +232,60 @@ type MemorySessionStore struct {
 	store      map[string]*Session
 }
 
-func (self *MemorySessionStore) Init(middleware *SessionMiddleware, cfg interface{}) {
-	self.middleware = middleware
-	self.store = make(map[string]*Session, 30)
+func (ms *MemorySessionStore) Init(middleware *SessionMiddleware, cfg interface{}) {
+	ms.middleware = middleware
+	ms.store = make(map[string]*Session, 30)
 }
 
-func (self *MemorySessionStore) NewSessionId() string {
+func (ms *MemorySessionStore) NewSessionId() string {
 	for true {
 		now := time.Now().Unix()
 		random := strconv.Itoa(rand.Int())
-		sessionId := fmt.Sprintf("%x", sha1.Sum([]byte(fmt.Sprintf("%v%v%v", now, random, self.middleware.Config.Secret))))
-		if !self.Exists(sessionId) {
+		sessionId := fmt.Sprintf("%x", sha1.Sum([]byte(fmt.Sprintf("%v%v%v", now, random, ms.middleware.Config.Secret))))
+		if !ms.Exists(sessionId) {
 			return sessionId
 		}
 	}
 	return ""
 }
 
-func (self *MemorySessionStore) Exists(sessionId string) bool {
-	_, ok := self.store[sessionId]
+func (ms *MemorySessionStore) Exists(sessionId string) bool {
+	_, ok := ms.store[sessionId]
 	return ok
 }
 
-func (self *MemorySessionStore) NewSession() *Session {
-	session := NewSession(self.NewSessionId())
-	self.store[session.Id] = session
+func (ms *MemorySessionStore) NewSession() *Session {
+	session := NewSession(ms.NewSessionId())
+	ms.store[session.Id] = session
 	return session
 }
 
-func (self *MemorySessionStore) Save(*Session) { /* Nothing to do */ }
+func (ms *MemorySessionStore) Save(*Session) { /* Nothing to do */ }
 
-func (self *MemorySessionStore) Load(sessionId string) *Session {
-	session, ok := self.store[sessionId]
+func (ms *MemorySessionStore) Load(sessionId string) *Session {
+	session, ok := ms.store[sessionId]
 	if ok {
 		return session
 	}
-	return self.NewSession()
+	return ms.NewSession()
 }
 
-func (self *MemorySessionStore) Delete(sessionId string) {
-	delete(self.store, sessionId)
+func (ms *MemorySessionStore) Delete(sessionId string) {
+	delete(ms.store, sessionId)
 }
 
-func (self *MemorySessionStore) Count() int {
-	return len(self.store)
+func (ms *MemorySessionStore) Count() int {
+	return len(ms.store)
 }
 
-func (self *MemorySessionStore) Gc() {
-	delkeys := make([]string, 0, len(self.store)/10)
-	for k, v := range self.store {
-		if (time.Now().Sub(v.LastAccessTime)) > self.middleware.Config.LifeTime {
+func (ms *MemorySessionStore) Gc() {
+	delkeys := make([]string, 0, len(ms.store)/10)
+	for k, v := range ms.store {
+		if (time.Now().Sub(v.LastAccessTime)) > ms.middleware.Config.LifeTime {
 			delkeys = append(delkeys, k)
 		}
 	}
 	for _, key := range delkeys {
-		self.Delete(key)
+		ms.Delete(key)
 	}
 }
