@@ -95,12 +95,30 @@ func (self Dict) GetString(key string) string {
 	}
 }
 
-func (self Dict) Set(key string, value interface{}) {
-	self[key] = value
+func (self Dict) GetInt(key string) int {
+	if v, ok := self[key]; ok {
+		return v.(int)
+	} else {
+		return 0
+	}
 }
 
-func (self Dict) Del(key string) {
+func (self Dict) GetBool(key string) bool {
+	if v, ok := self[key]; ok {
+		return v.(bool)
+	} else {
+		return false
+	}
+}
+
+func (self Dict) Set(key string, value interface{}) Dict {
+	self[key] = value
+	return self
+}
+
+func (self Dict) Del(key string) Dict {
 	delete(self, key)
+	return self
 }
 
 //}}}

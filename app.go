@@ -266,6 +266,7 @@ type Route struct {
 	PatternString   string
 	IsStatic        bool
 	MiddlewareChain *MiddlewareChain
+	Meta            Dict
 }
 
 var NopMiddleware = Middleware(MiddlewareOf(func(w http.ResponseWriter, r *http.Request) {}))
@@ -277,6 +278,7 @@ func NewRoute(n, p, m string, s bool, handler http.Handler, middlewares ...Middl
 		PatternString: p,
 		Method:        m,
 		IsStatic:      s,
+		Meta:          make(Dict),
 	}
 	reg := regexp.MustCompile("\\?P<([^<]+)>")
 	for _, lst := range reg.FindAllStringSubmatch(p, -1) {
@@ -313,41 +315,42 @@ func (mt *MountPoint) Use(middlewares ...interface{}) {
 }
 
 // Registers a http.HandlerFunc and middlewares with the given path pattern and method.
-func (mt *MountPoint) Route(n, p, m string, s bool, h http.HandlerFunc, middlewares ...interface{}) {
+func (mt *MountPoint) Route(n, p, m string, s bool, h http.HandlerFunc, middlewares ...interface{}) *Route {
 	mds := make([]Middleware, 0, 10)
 	mds = append(mds, mt.Middlewares...)
 	mds = append(mds, MiddlewaresOf(middlewares...)...)
 	route := NewRoute(n, mt.Path+p, m, s, http.HandlerFunc(h), mds...)
 	mt.App.Routes[n] = route
+	return route
 }
 
 // Shortcut for Route(name, pattern, "GET", false, handler, ...Middleware)
-func (mt *MountPoint) Get(n, p string, h http.HandlerFunc, middlewares ...interface{}) {
-	mt.Route(n, p, "GET", false, h, middlewares...)
+func (mt *MountPoint) Get(n, p string, h http.HandlerFunc, middlewares ...interface{}) *Route {
+	return mt.Route(n, p, "GET", false, h, middlewares...)
 }
 
 // Shortcut for Route(name, pattern, "POST", false, handler, ...Middleware)
-func (mt *MountPoint) Post(n, p string, h http.HandlerFunc, middlewares ...interface{}) {
-	mt.Route(n, p, "POST", false, h, middlewares...)
+func (mt *MountPoint) Post(n, p string, h http.HandlerFunc, middlewares ...interface{}) *Route {
+	return mt.Route(n, p, "POST", false, h, middlewares...)
 }
 
 // Shortcut for Route(name, pattern, "Put", false, handler, ...Middleware)
-func (mt *MountPoint) Put(n, p string, h http.HandlerFunc, middlewares ...interface{}) {
-	mt.Route(n, p, "PUT", false, h, middlewares...)
+func (mt *MountPoint) Put(n, p string, h http.HandlerFunc, middlewares ...interface{}) *Route {
+	return mt.Route(n, p, "PUT", false, h, middlewares...)
 }
 
 // Shortcut for Route(name, pattern, "DELETE", false, handler, ...Middleware)
-func (mt *MountPoint) Delete(n, p string, h http.HandlerFunc, middlewares ...interface{}) {
-	mt.Route(n, p, "DELETE", false, h, middlewares...)
+func (mt *MountPoint) Delete(n, p string, h http.HandlerFunc, middlewares ...interface{}) *Route {
+	return mt.Route(n, p, "DELETE", false, h, middlewares...)
 }
 
 // Registers a handler that serves static files.
-func (mt *MountPoint) Static(n, p, local string, middlewares ...interface{}) {
+func (mt *MountPoint) Static(n, p, local string, middlewares ...interface{}) *Route {
 	path := strings.Trim(p, "/")
-	mt.Route(n, path+"/(?P<path>.*)", "GET", true,
-		func(w http.ResponseWriter, r *http.Request) {
-			http.StripPrefix(mt.Path+path, http.FileServer(http.Dir(local))).ServeHTTP(w, r)
-		}, middlewares...)
+	server := http.StripPrefix(mt.Path+path, http.FileServer(http.Dir(local)))
+	rt := mt.Route(n, path+"/(?P<path>.*)", "GET", true, server.ServeHTTP, middlewares...)
+	rt.Meta.Set("local", local)
+	return rt
 }
 
 /* }}} */
@@ -362,8 +365,8 @@ type AppConfig struct {
 	Addr string
 	// default: ""
 	TemplateDirectory string
-    // default: true, if this value is true, cidre will treat a "_method" parameter as a HTTP method name.
-    AllowHttpMethodOverwrite bool
+	// default: true, if this value is true, cidre will treat a "_method" parameter as a HTTP method name.
+	AllowHttpMethodOverwrite bool
 	// cidre uses text/template to format access logs.
 	// default: "{{.c.Id}} {{.req.RemoteAddr}} {{.req.Method}} {{.req.RequestURI}} {{.req.Proto}} {{.res.Status}} {{.res.ContentLength}} {{.c.ResponseTime}}"
 	AccessLogFormat string
@@ -385,16 +388,16 @@ type AppConfig struct {
 // will call the function with the AppConfig object.
 func DefaultAppConfig(init ...func(*AppConfig)) *AppConfig {
 	self := &AppConfig{
-		Debug:             false,
-		Addr:              "127.0.0.1:8080",
-		TemplateDirectory: "",
-        AllowHttpMethodOverwrite: true,
-		AccessLogFormat:   "{{.c.Id}} {{.req.RemoteAddr}} {{.req.Method}} {{.req.RequestURI}} {{.req.Proto}} {{.res.Status}} {{.res.ContentLength}} {{.c.ResponseTime}}",
-		ReadTimeout:       time.Second * 180,
-		WriteTimeout:      time.Second * 180,
-		MaxHeaderBytes:    8192,
-		KeepAlive:         false,
-		AutoMaxProcs:      true,
+		Debug:                    false,
+		Addr:                     "127.0.0.1:8080",
+		TemplateDirectory:        "",
+		AllowHttpMethodOverwrite: true,
+		AccessLogFormat:          "{{.c.Id}} {{.req.RemoteAddr}} {{.req.Method}} {{.req.RequestURI}} {{.req.Proto}} {{.res.Status}} {{.res.ContentLength}} {{.c.ResponseTime}}",
+		ReadTimeout:              time.Second * 180,
+		WriteTimeout:             time.Second * 180,
+		MaxHeaderBytes:           8192,
+		KeepAlive:                false,
+		AutoMaxProcs:             true,
 	}
 	if len(init) > 0 {
 		init[0](self)
@@ -505,12 +508,12 @@ func (app *App) ServeHTTP(ww http.ResponseWriter, r *http.Request) {
 	app.Hooks.Run("start_request", HookDirectionNormal, w, r, nil)
 
 	path := r.URL.Path
-    method := r.Method
-    if app.Config.AllowHttpMethodOverwrite {
-      if overwrittenMethod := r.PostFormValue("_method"); len(overwrittenMethod) > 0 {
-        method = overwrittenMethod
-      }
-    }
+	method := r.Method
+	if app.Config.AllowHttpMethodOverwrite {
+		if overwrittenMethod := r.PostFormValue("_method"); len(overwrittenMethod) > 0 {
+			method = overwrittenMethod
+		}
+	}
 	for _, route := range app.Routes {
 		if strings.ToUpper(method) != strings.ToUpper(route.Method) {
 			continue
