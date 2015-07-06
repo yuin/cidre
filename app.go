@@ -116,6 +116,7 @@ func (hooks Hooks) Add(name string, hook Hook) {
 //     - before_write_content(self, nil, content []byte)
 type ResponseWriter interface {
 	http.ResponseWriter
+	SetHeader(int)
 	ContentLength() int
 	Status() int
 	Hooks() Hooks
@@ -138,6 +139,10 @@ func (w *responseWriter) Hooks() Hooks {
 	return w.hooks
 }
 
+func (w *responseWriter) SetHeader(status int) {
+	w.status = status
+}
+
 func (w *responseWriter) WriteHeader(status int) {
 	w.Hooks().Run("before_write_header", HookDirectionReverse, w, nil, status)
 	w.status = status
@@ -148,8 +153,9 @@ func (w *responseWriter) WriteHeader(status int) {
 func (w *responseWriter) Write(b []byte) (int, error) {
 	if w.ContentLength() == 0 {
 		if w.status == 0 {
-			w.WriteHeader(200)
+			w.status = 200
 		}
+		w.WriteHeader(w.status)
 		w.Hooks().Run("before_write_content", HookDirectionReverse, w, nil, b)
 	}
 
