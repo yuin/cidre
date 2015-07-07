@@ -127,11 +127,12 @@ type responseWriter struct {
 	status        int
 	contentLength int
 	hooks         Hooks
+	headerWritten bool
 }
 
 // Returns a new ResponseWriter object wrap around the given http.ResponseWriter object.
 func NewResponseWriter(w http.ResponseWriter) ResponseWriter {
-	self := &responseWriter{w, 0, 0, make(Hooks)}
+	self := &responseWriter{w, 0, 0, make(Hooks), false}
 	return self
 }
 
@@ -144,18 +145,25 @@ func (w *responseWriter) SetHeader(status int) {
 }
 
 func (w *responseWriter) WriteHeader(status int) {
+	if w.headerWritten {
+		return
+	}
 	w.Hooks().Run("before_write_header", HookDirectionReverse, w, nil, status)
 	w.status = status
+	w.headerWritten = true
 	w.ResponseWriter.WriteHeader(status)
 	w.Hooks().Run("after_write_header", HookDirectionReverse, w, nil, status)
 }
 
 func (w *responseWriter) Write(b []byte) (int, error) {
-	if w.ContentLength() == 0 {
+	if !w.headerWritten {
 		if w.status == 0 {
 			w.status = 200
 		}
 		w.WriteHeader(w.status)
+	}
+
+	if w.ContentLength() == 0 {
 		w.Hooks().Run("before_write_content", HookDirectionReverse, w, nil, b)
 	}
 
